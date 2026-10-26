@@ -88,6 +88,68 @@ class SellerCekSosmedService:
             except Exception as e:
                 return {"success": False, "error": str(e)}
 
+    async def list_chats(self, account_id: Optional[str] = None, page: int = 1, limit: int = 50) -> Dict[str, Any]:
+        """Melihat daftar chat / DM masuk dari akun sosial media seller."""
+        url = f"{self.base_url}/api/v1/sosmed/chats"
+        params: Dict[str, Any] = {"page": page, "limit": limit}
+        if account_id:
+            params["account_id"] = account_id
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            try:
+                res = await client.get(url, headers=self._headers(), params=params)
+                if res.status_code == 200:
+                    return res.json()
+            except Exception as e:
+                return {"success": False, "error": str(e), "chats": []}
+        return {"success": False, "chats": []}
+
+    async def get_chat_messages(self, chat_id: str, page: int = 1, limit: int = 50) -> Dict[str, Any]:
+        """Melihat riwayat percakapan suatu chat DM."""
+        url = f"{self.base_url}/api/v1/sosmed/chats/{chat_id}/messages"
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            try:
+                res = await client.get(url, headers=self._headers(), params={"page": page, "limit": limit})
+                if res.status_code == 200:
+                    return res.json()
+            except Exception as e:
+                return {"success": False, "error": str(e), "messages": []}
+        return {"success": False, "messages": []}
+
+    async def reply_chat(self, chat_id: str, message: str) -> Dict[str, Any]:
+        """Kirim balasan chat / DM ke pelanggan."""
+        url = f"{self.base_url}/api/v1/sosmed/chats/{chat_id}/reply"
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            try:
+                res = await client.post(url, headers=self._headers(), json={"message": message})
+                return res.json()
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+    async def list_comments(self, account_id: Optional[str] = None, page: int = 1, limit: int = 50) -> Dict[str, Any]:
+        """Melihat daftar komentar pada postingan media sosial seller."""
+        url = f"{self.base_url}/api/v1/sosmed/comments"
+        params: Dict[str, Any] = {"page": page, "limit": limit}
+        if account_id:
+            params["account_id"] = account_id
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            try:
+                res = await client.get(url, headers=self._headers(), params=params)
+                if res.status_code == 200:
+                    return res.json()
+            except Exception as e:
+                return {"success": False, "error": str(e), "comments": []}
+        return {"success": False, "comments": []}
+
+    async def reply_comment(self, comment_id: str, message: str) -> Dict[str, Any]:
+        """Balas komentar customer di media sosial."""
+        url = f"{self.base_url}/api/v1/sosmed/comments/{comment_id}/reply"
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            try:
+                res = await client.post(url, headers=self._headers(), json={"message": message})
+                return res.json()
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
     async def get_seller_quota(self) -> Dict[str, Any]:
         """Ambil sisa kuota akun, token AI bot, dan status langganan seller."""
         url = f"{self.base_url}/api/v1/sosmed/quota"

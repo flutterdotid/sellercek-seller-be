@@ -127,6 +127,63 @@ async def sellercek_send_direct_message(account_id: str, recipient_id: str, mess
     return json.dumps(res, indent=2, ensure_ascii=False)
 
 @mcp.tool()
+async def sellercek_list_chats(account_id: Optional[str] = None) -> str:
+    """
+    Melihat daftar chat dan Direct Messages (DM) masuk dari customer media sosial.
+    Parameter:
+      - account_id: (Opsional) Filter berdasarkan akun tertentu.
+    """
+    svc = _get_service()
+    res = await svc.list_chats(account_id=account_id)
+    return json.dumps(res, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def sellercek_get_chat_messages(chat_id: str) -> str:
+    """
+    Melihat riwayat percakapan pesan di dalam room chat DM tertentu.
+    Parameter:
+      - chat_id: ID room percakapan / chat.
+    """
+    svc = _get_service()
+    res = await svc.get_chat_messages(chat_id=chat_id)
+    return json.dumps(res, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def sellercek_reply_chat(chat_id: str, message: str) -> str:
+    """
+    Kirim pesan balasan ke percakapan chat / DM customer.
+    Parameter:
+      - chat_id: ID room percakapan chat.
+      - message: Teks pesan balasan.
+    """
+    svc = _get_service()
+    res = await svc.reply_chat(chat_id=chat_id, message=message)
+    return json.dumps(res, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def sellercek_list_comments(account_id: Optional[str] = None) -> str:
+    """
+    Melihat komentar-komentar terbaru customer pada postingan media sosial seller.
+    Parameter:
+      - account_id: (Opsional) Filter berdasarkan akun tertentu.
+    """
+    svc = _get_service()
+    res = await svc.list_comments(account_id=account_id)
+    return json.dumps(res, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def sellercek_reply_comment(comment_id: str, message: str) -> str:
+    """
+    Balas komentar customer pada postingan media sosial.
+    Parameter:
+      - comment_id: ID komentar yang ingin dibalas.
+      - message: Teks balasan komentar.
+    """
+    svc = _get_service()
+    res = await svc.reply_comment(comment_id=comment_id, message=message)
+    return json.dumps(res, indent=2, ensure_ascii=False)
+
+@mcp.tool()
 async def sellercek_get_quota_status() -> str:
     """
     Cek sisa limit kuota akun sosial media yang terhubung, sisa token AI, dan status paket langganan.

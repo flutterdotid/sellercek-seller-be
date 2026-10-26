@@ -31,6 +31,12 @@ class CreatePostRequest(BaseModel):
     publish_now: bool = True
     scheduled_at: Optional[str] = None
 
+class SendReplyChatRequest(BaseModel):
+    message: str
+
+class SendReplyCommentRequest(BaseModel):
+    message: str
+
 class SendDirectMessageRequest(BaseModel):
     account_id: str
     recipient_id: str

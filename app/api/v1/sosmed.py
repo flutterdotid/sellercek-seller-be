@@ -4,6 +4,8 @@ from app.schemas.sosmed import (
     UpdateAiBotRequest,
     CreatePostRequest,
     SendDirectMessageRequest,
+    SendReplyChatRequest,
+    SendReplyCommentRequest,
     RagSearchRequest
 )
 from app.services.seller_sosmed import SellerCekSosmedService
@@ -56,6 +58,54 @@ async def send_dm(req: SendDirectMessageRequest, svc: SellerCekSosmedService = D
     """Kirim direct message ke customer / follower melalui bot akun seller."""
     res = await svc.send_direct_message(req.account_id, req.recipient_id, req.message)
     return res
+
+@router.get("/chats")
+async def list_chats(
+    account_id: Optional[str] = Query(None, description="Filter berdasarkan ID akun sosmed"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    svc: SellerCekSosmedService = Depends(get_sosmed_service)
+):
+    """Melihat daftar chat / pesan masuk (Direct Message) pelanggan."""
+    return await svc.list_chats(account_id=account_id, page=page, limit=limit)
+
+@router.get("/chats/{chat_id}/messages")
+async def get_chat_messages(
+    chat_id: str,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    svc: SellerCekSosmedService = Depends(get_sosmed_service)
+):
+    """Melihat riwayat percakapan / pesan di dalam room chat tertentu."""
+    return await svc.get_chat_messages(chat_id=chat_id, page=page, limit=limit)
+
+@router.post("/chats/{chat_id}/reply")
+async def reply_chat(
+    chat_id: str,
+    req: SendReplyChatRequest,
+    svc: SellerCekSosmedService = Depends(get_sosmed_service)
+):
+    """Membalas chat / DM pelanggan."""
+    return await svc.reply_chat(chat_id=chat_id, message=req.message)
+
+@router.get("/comments")
+async def list_comments(
+    account_id: Optional[str] = Query(None, description="Filter berdasarkan ID akun sosmed"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    svc: SellerCekSosmedService = Depends(get_sosmed_service)
+):
+    """Melihat daftar komentar pada postingan media sosial seller."""
+    return await svc.list_comments(account_id=account_id, page=page, limit=limit)
+
+@router.post("/comments/{comment_id}/reply")
+async def reply_comment(
+    comment_id: str,
+    req: SendReplyCommentRequest,
+    svc: SellerCekSosmedService = Depends(get_sosmed_service)
+):
+    """Membalas komentar customer pada postingan."""
+    return await svc.reply_comment(comment_id=comment_id, message=req.message)
 
 @router.get("/quota")
 async def get_quota(svc: SellerCekSosmedService = Depends(get_sosmed_service)):
