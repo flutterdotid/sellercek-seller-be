@@ -7,11 +7,11 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "production"
     DEBUG: bool = False
 
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/sellercek"
+    # Core SellerCek API Gateway (Seller BE berkomunikasi via API Core, bukan direct DB)
     SELLERCEK_CORE_API_URL: str = "https://api.sellercek.com"
+    SELLERCEK_CORE_TIMEOUT: float = 30.0
 
-    JWT_SECRET: str = "sellercek_secret_key_change_in_production"
-    ALGORITHM: str = "HS256"
+    # Default Seller API Key / Fallback Token
     DEFAULT_SELLER_API_KEY: str = ""
 
     OPENAI_API_KEY: str = ""
