@@ -10,7 +10,7 @@ from app.schemas.sosmed import (
 )
 from app.services.seller_sosmed import SellerCekSosmedService
 
-router = APIRouter(prefix="/sosmed", tags=["Seller Sosmed"])
+router = APIRouter(prefix="/api/v1/sosmed", tags=["Seller Sosmed"])
 
 def get_sosmed_service(
     authorization: Optional[str] = Header(None),

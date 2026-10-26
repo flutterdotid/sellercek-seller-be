@@ -27,6 +27,7 @@ app.add_middleware(
 )
 
 # Hubungkan API V1
+from app.api.v1 import api_v1_router
 app.include_router(api_v1_router)
 
 # Mount MCP via SSE untuk integrasi Web / Network Agents (n8n, OpenClaw, dll.)
