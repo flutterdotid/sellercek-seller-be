@@ -2,16 +2,26 @@ import asyncio
 import json
 import os
 import sys
+from contextvars import ContextVar
 from typing import Any, Dict, List, Optional
 from mcp.server.fastmcp import FastMCP
 from app.services.seller_sosmed import SellerCekSosmedService
 from app.core.config import settings
 
 # Inisialisasi FastMCP Server
-mcp = FastMCP("SellerCek Social Media Automation MCP")
+from mcp.server.transport_security import TransportSecuritySettings
+mcp = FastMCP(
+    "SellerCek Social Media Automation MCP",
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=False
+    )
+)
+
+# ContextVar untuk menyimpan API Key dari sesi SSE
+current_api_key_ctx: ContextVar[Optional[str]] = ContextVar("current_api_key_ctx", default=None)
 
 def _get_service() -> SellerCekSosmedService:
-    api_key = os.getenv("SELLERCEK_API_KEY", settings.DEFAULT_SELLER_API_KEY)
+    api_key = current_api_key_ctx.get() or os.getenv("SELLERCEK_API_KEY", settings.DEFAULT_SELLER_API_KEY)
     token = os.getenv("SELLERCEK_TOKEN", None)
     return SellerCekSosmedService(auth_token=token, api_key=api_key)
 
@@ -75,18 +85,17 @@ async def sellercek_update_ai_bot(
     return json.dumps(res, indent=2, ensure_ascii=False)
 
 @mcp.tool()
-async def sellercek_search_knowledge_rag(account_id: str, query: str, top_k: int = 3) -> str:
+async def sellercek_list_posts(account_id: Optional[str] = None, page: int = 1, limit: int = 50) -> str:
     """
-    Lakukan pencarian semantik (RAG) pada dokumen pengetahuan yang telah diunggah seller.
-    Cocok digunakan AI agent untuk mencari data spesifik (harga, katalog, garansi, FAQ).
+    Melihat daftar postingan sosial media (terjadwal atau terpublikasi).
     Parameter:
-      - account_id: ID akun sosmed
-      - query: Pertanyaan atau kata kunci pencarian
-      - top_k: Jumlah potongan chunk pengetahuan teratas yang ingin diambil (default: 3)
+      - account_id: (Opsional) Filter berdasarkan akun tertentu.
+      - page: Nomor halaman (default: 1)
+      - limit: Jumlah data per halaman (default: 50)
     """
     svc = _get_service()
-    results = await svc.search_rag_knowledge(account_id, query, top_k)
-    return json.dumps(results, indent=2, ensure_ascii=False)
+    res = await svc.list_sosmed_posts(account_id=account_id, page=page, limit=limit)
+    return json.dumps(res, indent=2, ensure_ascii=False)
 
 @mcp.tool()
 async def sellercek_create_post(

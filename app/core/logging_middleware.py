@@ -71,7 +71,17 @@ class AgentApiRequestLoggingMiddleware(BaseHTTPMiddleware):
         user_agent = request.headers.get("user-agent", "")[:500]
 
         # Ekstrak API Key prefix jika ada
-        api_key_header = request.headers.get("x-seller-api-key") or ""
+        api_key_header = request.headers.get("x-seller-api-key") or request.headers.get("X-Seller-API-Key") or ""
+        auth_hdr = request.headers.get("authorization") or request.headers.get("Authorization") or ""
+        if not api_key_header and auth_hdr:
+            auth_val = auth_hdr.replace("Bearer ", "").strip()
+            if auth_val.startswith("sk_live_"):
+                api_key_header = auth_val
+
+        # Simpan ke contextvars agar tools MCP SSE dapat membaca API key penelpon secara dinamis
+        from app.mcp_server import current_api_key_ctx
+        token_ctx = current_api_key_ctx.set(api_key_header if api_key_header else None)
+
         api_key_prefix = None
         if api_key_header.startswith("sk_live_"):
             api_key_prefix = api_key_header[:12] + "..."
@@ -143,6 +153,8 @@ class AgentApiRequestLoggingMiddleware(BaseHTTPMiddleware):
             error_message = str(exc)
             raise exc
         finally:
+            if 'token_ctx' in locals():
+                current_api_key_ctx.reset(token_ctx)
             execution_time_ms = round((time.time() - start_time) * 1000, 2)
 
             log_data = {

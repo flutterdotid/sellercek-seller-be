@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Core SellerCek API Gateway (Seller BE berkomunikasi via API Core, bukan direct DB)
-    SELLERCEK_CORE_API_URL: str = "https://api.sellercek.com"
+    SELLERCEK_CORE_API_URL: str = os.getenv("SELLERCEK_CORE_API_URL", "https://api.sellercek.com")
     SELLERCEK_CORE_TIMEOUT: float = 30.0
 
     # Default Seller API Key / Fallback Token

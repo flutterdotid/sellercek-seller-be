@@ -36,7 +36,7 @@ app.include_router(api_v1_router)
 
 # Mount MCP via SSE untuk integrasi Web / Network Agents (n8n, OpenClaw, dll.)
 try:
-    mcp_app = mcp.sse_app()
+    mcp_app = mcp.sse_app(mount_path="/mcp")
     app.mount("/mcp", mcp_app)
 except Exception as e:
     print(f"[SellerCek-Seller-BE] MCP SSE Mount Notice: {e}")
