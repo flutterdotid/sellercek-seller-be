@@ -91,6 +91,25 @@ class SellerCekSosmedService:
             except Exception as e:
                 return {"success": False, "error": str(e)}
 
+    async def list_sosmed_posts(self, account_id: Optional[str] = None, page: int = 1, limit: int = 50) -> Dict[str, Any]:
+        """Ambil daftar postingan sosial media seller."""
+        url = f"{self.base_url}/api/v1/sosmed/posts"
+        params: Dict[str, Any] = {"page": page, "limit": limit}
+        if account_id:
+            params["account_id"] = account_id
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            try:
+                res = await client.get(url, headers=self._headers(), params=params)
+                if res.status_code >= 400:
+                    try:
+                        err_json = res.json()
+                        return {"success": False, "status_code": res.status_code, "error": err_json.get("detail", str(err_json))}
+                    except Exception:
+                        return {"success": False, "status_code": res.status_code, "error": res.text}
+                return res.json()
+            except Exception as e:
+                return {"success": False, "error": str(e), "posts": []}
+
     async def create_sosmed_post_multipart(
         self,
         form_data: Dict[str, Any],

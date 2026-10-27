@@ -71,6 +71,16 @@ async def upload_media(
     res = await svc.upload_media_file(file_bytes=file_bytes, filename=file.filename or "media_upload", content_type=content_type)
     return res
 
+@router.get("/posts")
+async def list_posts(
+    account_id: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    svc: SellerCekSosmedService = Depends(get_sosmed_service)
+):
+    """Ambil daftar postingan sosial media seller (terjadwal / terpublikasi)."""
+    return await svc.list_sosmed_posts(account_id=account_id, page=page, limit=limit)
+
 @router.post("/posts")
 async def create_post(
     request: Request,
