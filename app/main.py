@@ -26,6 +26,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Logging Middleware untuk mencatat request agent.sellercek.com ke DB log_agent_api_requests
+from app.core.logging_middleware import AgentApiRequestLoggingMiddleware
+app.add_middleware(AgentApiRequestLoggingMiddleware)
+
 # Hubungkan API V1
 from app.api.v1 import api_v1_router
 app.include_router(api_v1_router)
