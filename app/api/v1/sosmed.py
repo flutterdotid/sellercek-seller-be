@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status, UploadFile, File
 from typing import Optional, List, Dict, Any
 from app.schemas.sosmed import (
     UpdateAiBotRequest,
@@ -61,6 +61,21 @@ async def search_rag(req: RagSearchRequest, svc: SellerCekSosmedService = Depend
     """Pencarian semantik pada dokumen knowledge base RAG akun sosmed."""
     results = await svc.search_rag_knowledge(req.account_id, req.query, req.top_k)
     return {"success": True, "results": results}
+
+@router.post("/media/upload")
+async def upload_media(
+    file: UploadFile = File(...),
+    svc: SellerCekSosmedService = Depends(get_sosmed_service)
+):
+    """
+    Upload langsung media gambar/video via API Key ke Cloudflare R2 / Server SellerCek.
+    Mendapatkan `media_url` publik yang siap dipasang pada `media_urls` endpoint `/posts`.
+    Batas: 100 MB (Video) dan 25 MB (Gambar).
+    """
+    file_bytes = await file.read()
+    content_type = file.content_type or "application/octet-stream"
+    res = await svc.upload_media_file(file_bytes=file_bytes, filename=file.filename or "media_upload", content_type=content_type)
+    return res
 
 @router.post("/posts")
 async def create_post(req: CreatePostRequest, svc: SellerCekSosmedService = Depends(get_sosmed_service)):

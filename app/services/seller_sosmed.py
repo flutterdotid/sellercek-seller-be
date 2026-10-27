@@ -68,6 +68,29 @@ class SellerCekSosmedService:
                 pass
         return []
 
+    async def upload_media_file(self, file_bytes: bytes, filename: str, content_type: str) -> Dict[str, Any]:
+        """Upload file gambar/video ke Cloudflare R2 via Core API."""
+        url = f"{self.base_url}/api/v1/sosmed/media/upload"
+        headers = {}
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        elif self.api_key:
+            headers["X-Seller-API-Key"] = self.api_key
+
+        files = {"file": (filename, file_bytes, content_type)}
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                res = await client.post(url, headers=headers, files=files)
+                if res.status_code >= 400:
+                    try:
+                        err_json = res.json()
+                        return {"success": False, "status_code": res.status_code, "error": err_json.get("detail", str(err_json))}
+                    except Exception:
+                        return {"success": False, "status_code": res.status_code, "error": res.text}
+                return res.json()
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
     async def create_sosmed_post(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Publikasikan atau jadwalkan postingan sosial media seller."""
         url = f"{self.base_url}/api/v1/sosmed/posts"
