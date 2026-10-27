@@ -56,12 +56,6 @@ async def update_ai_config(req: UpdateAiBotRequest, svc: SellerCekSosmedService 
     res = await svc.update_ai_configuration(req.account_id, req.model_dump(exclude_unset=True))
     return res
 
-@router.post("/accounts/rag-search")
-async def search_rag(req: RagSearchRequest, svc: SellerCekSosmedService = Depends(get_sosmed_service)):
-    """Pencarian semantik pada dokumen knowledge base RAG akun sosmed."""
-    results = await svc.search_rag_knowledge(req.account_id, req.query, req.top_k)
-    return {"success": True, "results": results}
-
 @router.post("/media/upload")
 async def upload_media(
     file: UploadFile = File(...),
