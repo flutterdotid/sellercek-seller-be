@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from typing import Optional, List, Dict, Any
 from app.schemas.sosmed import (
     UpdateAiBotRequest,
@@ -13,12 +13,27 @@ from app.services.seller_sosmed import SellerCekSosmedService
 router = APIRouter(prefix="/api/v1/sosmed", tags=["Seller Sosmed"])
 
 def get_sosmed_service(
+    request: Request,
     authorization: Optional[str] = Header(None),
     x_seller_api_key: Optional[str] = Header(None)
 ) -> SellerCekSosmedService:
     token = None
     if authorization and authorization.startswith("Bearer "):
-        token = authorization.replace("Bearer ", "").strip()
+        bearer_val = authorization.replace("Bearer ", "").strip()
+        if bearer_val.startswith("sk_live_"):
+            x_seller_api_key = bearer_val
+        else:
+            token = bearer_val
+    elif not x_seller_api_key:
+        x_seller_api_key = request.headers.get("X-Seller-API-Key") or request.headers.get("x-seller-api-key")
+
+    if not token and not x_seller_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials: X-Seller-API-Key or Bearer token required",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
     return SellerCekSosmedService(auth_token=token, api_key=x_seller_api_key)
 
 @router.get("/accounts")

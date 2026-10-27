@@ -74,6 +74,12 @@ class SellerCekSosmedService:
         async with httpx.AsyncClient(timeout=20.0) as client:
             try:
                 res = await client.post(url, headers=self._headers(), json=payload)
+                if res.status_code >= 400:
+                    try:
+                        err_json = res.json()
+                        return {"success": False, "status_code": res.status_code, "error": err_json.get("detail", str(err_json))}
+                    except Exception:
+                        return {"success": False, "status_code": res.status_code, "error": res.text}
                 return res.json()
             except Exception as e:
                 return {"success": False, "error": str(e)}
