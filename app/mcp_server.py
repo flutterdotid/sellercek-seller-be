@@ -1,5 +1,6 @@
 import asyncio
 import json
+import mimetypes
 import os
 import sys
 from contextvars import ContextVar
@@ -101,26 +102,137 @@ async def sellercek_list_posts(account_id: Optional[str] = None, page: int = 1, 
 async def sellercek_create_post(
     account_id: str,
     caption: str,
+    file_path: Optional[str] = None,
+    file_paths: Optional[List[str]] = None,
     media_urls: Optional[List[str]] = None,
+    title: Optional[str] = None,
+    scheduled_at: Optional[str] = None,
     publish_now: bool = True
 ) -> str:
     """
     Publikasikan atau jadwalkan postingan konten baru ke media sosial seller.
+    Mendukung upload media gambar/video langsung dari file lokal komputer/server ATAU via URL publik.
     Parameter:
-      - account_id: ID akun sasaran postingan
+      - account_id: ID akun sasaran postingan di SellerCek
       - caption: Teks status atau caption konten
-      - media_urls: Daftar URL gambar atau video yang ingin diposting
+      - file_path: (Opsional) Path ke file gambar/video lokal di komputer (misal: /path/to/promo.mp4 atau /path/to/foto.jpg)
+      - file_paths: (Opsional) Daftar multiple file gambar/video lokal di komputer
+      - media_urls: (Opsional) Daftar URL publik gambar atau video
+      - title: (Opsional) Judul postingan (berguna untuk video YouTube / TikTok)
+      - scheduled_at: (Opsional) Waktu penjadwalan format ISO (misal: 2026-10-28T15:00:00Z)
       - publish_now: Langsung publish (True) atau simpan sebagai draft (False)
     """
+    local_files = []
+    if file_path:
+        local_files.append(file_path)
+    if file_paths:
+        for fp in file_paths:
+            if fp and fp not in local_files:
+                local_files.append(fp)
+
     svc = _get_service()
+
+    if local_files:
+        upload_files = []
+        for fp in local_files:
+            fp_expanded = os.path.expanduser(fp)
+            if not os.path.isfile(fp_expanded):
+                return json.dumps({
+                    "success": False,
+                    "error": f"File lokal tidak ditemukan: {fp}"
+                }, indent=2, ensure_ascii=False)
+
+            fname = os.path.basename(fp_expanded)
+            c_type, _ = mimetypes.guess_type(fp_expanded)
+            if not c_type:
+                c_type = "video/mp4" if fname.lower().endswith(('.mp4', '.mov', '.webm', '.m4v')) else "image/jpeg"
+
+            try:
+                with open(fp_expanded, "rb") as f:
+                    f_bytes = f.read()
+            except Exception as e:
+                return json.dumps({
+                    "success": False,
+                    "error": f"Gagal membaca file {fp}: {str(e)}"
+                }, indent=2, ensure_ascii=False)
+
+            upload_files.append(("files", (fname, f_bytes, c_type)))
+
+        form_data = {
+            "account_id": account_id,
+            "caption": caption,
+            "title": title or "",
+            "scheduled_at": scheduled_at or ""
+        }
+        res = await svc.create_sosmed_post_multipart(form_data=form_data, files=upload_files)
+        return json.dumps(res, indent=2, ensure_ascii=False)
+
     payload = {
         "account_id": account_id,
         "caption": caption,
         "media_urls": media_urls or [],
+        "title": title or "",
+        "scheduled_at": scheduled_at or "",
         "publish_now": publish_now
     }
     res = await svc.create_sosmed_post(payload)
     return json.dumps(res, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def sellercek_upload_media(file_path: str) -> str:
+    """
+    Upload langsung media gambar atau video dari file lokal (PC/Server) ke CDN / Cloudflare R2 SellerCek.
+    Mendapatkan `media_url` publik yang siap dipasang pada postingan media sosial.
+    Batas: 100 MB (Video) dan 25 MB (Gambar).
+    Parameter:
+      - file_path: Path lengkap ke file gambar atau video lokal (misal: /path/to/video.mp4 atau /path/to/gambar.jpg)
+    """
+    fp_expanded = os.path.expanduser(file_path)
+    if not os.path.isfile(fp_expanded):
+        return json.dumps({"success": False, "error": f"File lokal tidak ditemukan: {file_path}"}, indent=2, ensure_ascii=False)
+
+    fname = os.path.basename(fp_expanded)
+    c_type, _ = mimetypes.guess_type(fp_expanded)
+    if not c_type:
+        c_type = "video/mp4" if fname.lower().endswith(('.mp4', '.mov', '.webm', '.m4v')) else "image/jpeg"
+
+    try:
+        with open(fp_expanded, "rb") as f:
+            f_bytes = f.read()
+    except Exception as e:
+        return json.dumps({"success": False, "error": f"Gagal membaca file: {str(e)}"}, indent=2, ensure_ascii=False)
+
+    svc = _get_service()
+    res = await svc.upload_media_file(file_bytes=f_bytes, filename=fname, content_type=c_type)
+    return json.dumps(res, indent=2, ensure_ascii=False)
+
+@mcp.tool()
+async def sosmed_create_post(
+    account_id: str,
+    caption: str,
+    file_path: Optional[str] = None,
+    file_paths: Optional[List[str]] = None,
+    media_urls: Optional[List[str]] = None,
+    title: Optional[str] = None,
+    scheduled_at: Optional[str] = None,
+    publish_now: bool = True
+) -> str:
+    """Alias untuk sellercek_create_post (Mendukung file_path lokal atau media_urls)."""
+    return await sellercek_create_post(
+        account_id=account_id,
+        caption=caption,
+        file_path=file_path,
+        file_paths=file_paths,
+        media_urls=media_urls,
+        title=title,
+        scheduled_at=scheduled_at,
+        publish_now=publish_now
+    )
+
+@mcp.tool()
+async def sosmed_upload_media(file_path: str) -> str:
+    """Alias untuk sellercek_upload_media."""
+    return await sellercek_upload_media(file_path=file_path)
 
 @mcp.tool()
 async def sellercek_send_direct_message(account_id: str, recipient_id: str, message: str) -> str:
