@@ -91,6 +91,32 @@ class SellerCekSosmedService:
             except Exception as e:
                 return {"success": False, "error": str(e)}
 
+    async def create_sosmed_post_multipart(
+        self,
+        form_data: Dict[str, Any],
+        files: List[Any]
+    ) -> Dict[str, Any]:
+        """Kirim postingan bersama file multipart langsung ke Core API."""
+        url = f"{self.base_url}/api/v1/sosmed/posts"
+        headers = {}
+        if self.auth_token:
+            headers["Authorization"] = f"Bearer {self.auth_token}"
+        elif self.api_key:
+            headers["X-Seller-API-Key"] = self.api_key
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            try:
+                res = await client.post(url, headers=headers, data=form_data, files=files)
+                if res.status_code >= 400:
+                    try:
+                        err_json = res.json()
+                        return {"success": False, "status_code": res.status_code, "error": err_json.get("detail", str(err_json))}
+                    except Exception:
+                        return {"success": False, "status_code": res.status_code, "error": res.text}
+                return res.json()
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
     async def create_sosmed_post(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Publikasikan atau jadwalkan postingan sosial media seller."""
         url = f"{self.base_url}/api/v1/sosmed/posts"

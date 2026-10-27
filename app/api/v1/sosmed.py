@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status, UploadFile, File
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status, UploadFile, File, Form
 from typing import Optional, List, Dict, Any
 from app.schemas.sosmed import (
     UpdateAiBotRequest,
@@ -78,10 +78,46 @@ async def upload_media(
     return res
 
 @router.post("/posts")
-async def create_post(req: CreatePostRequest, svc: SellerCekSosmedService = Depends(get_sosmed_service)):
-    """Publikasikan atau jadwalkan postingan ke media sosial."""
-    res = await svc.create_sosmed_post(req.model_dump())
-    return res
+async def create_post(
+    request: Request,
+    account_id: Optional[str] = Form(None),
+    caption: Optional[str] = Form(None),
+    title: Optional[str] = Form(None),
+    scheduled_at: Optional[str] = Form(None),
+    type: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    files: Optional[List[UploadFile]] = File(None),
+    svc: SellerCekSosmedService = Depends(get_sosmed_service)
+):
+    """
+    Publikasikan atau jadwalkan postingan ke media sosial.
+    Bisa langsung upload file (multipart/form-data) atau pakai JSON media_urls.
+    """
+    content_type = request.headers.get("content-type") or ""
+    if "application/json" in content_type.lower():
+        try:
+            req_json = await request.json()
+        except Exception:
+            req_json = {}
+        return await svc.create_sosmed_post(req_json)
+
+    # Multipart / form-data
+    form_data = {
+        "account_id": account_id or "",
+        "caption": caption or "",
+        "title": title or "",
+        "scheduled_at": scheduled_at or "",
+        "type": type or ""
+    }
+    upload_list = []
+    if file and file.filename:
+        upload_list.append(("files", (file.filename, await file.read(), file.content_type or "application/octet-stream")))
+    if files:
+        for f in files:
+            if f and f.filename:
+                upload_list.append(("files", (f.filename, await f.read(), f.content_type or "application/octet-stream")))
+
+    return await svc.create_sosmed_post_multipart(form_data=form_data, files=upload_list)
 
 @router.post("/send-dm")
 async def send_dm(req: SendDirectMessageRequest, svc: SellerCekSosmedService = Depends(get_sosmed_service)):
